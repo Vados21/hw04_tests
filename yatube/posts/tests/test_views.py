@@ -55,9 +55,17 @@ class PostPagesTests(TestCase):
                 reverse('posts:post_detail', kwargs={'post_id': post_id})
             ),
             'posts/create_post.html': reverse('posts:create_post'),
+        }
+        for template, reverse_name in templates_pages_names.items():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.authorized_client.get(reverse_name)
+                self.assertTemplateUsed(response, template)
+
+    def test_edit_page(self):
+        post_id = PostPagesTests.post.id
+        templates_pages_names = {
             'posts/create_post.html': (
-                reverse('posts:post_edit', kwargs={'post_id': post_id})
-            ),
+                reverse('posts:post_edit', kwargs={'post_id': post_id}))
         }
         for template, reverse_name in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
@@ -65,7 +73,6 @@ class PostPagesTests(TestCase):
                 self.assertTemplateUsed(response, template)
 
     def test_home_page_show_correct_context(self):
-        """Шаблон home сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse('posts:create_post'))
         form_fields = {
             'text': forms.fields.CharField,

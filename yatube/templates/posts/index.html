@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Последние обновления на сайте{% endblock %}
+{% block content %}
+  <h1>{% block header %}Последние обновления на сайте{% endblock %}</h1>
+  {% for post in page_obj %}
+    <ul>
+      <li>
+        Автор: {{ post.author }}
+      </li>
+      <li>
+        Дата публикации: {{ post.pub_date|date:"d E Y" }}
+      </li>
+    </ul>
+    <p>{{ post.text|linebreaksbr }}</p>
+    {% if post.group %}
+      <a href="{% url 'posts:group_list' post.group.slug %}">все записи группы "{{ post.group.title }}"</a>
+    {% endif%}
+    {% if user.is_authenticated and user == post.author %}
+    <p>
+      <a href={% url 'posts:post_edit' post.pk %}> Редактировать запись</a>
+    </p>
+    {% endif %}
+    {% if not forloop.last %}<hr>
+    {% endif %}
+  {% endfor %}
+
+  {% include 'includes/paginator.html' %}
+
+{% endblock %} 

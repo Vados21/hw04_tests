@@ -1,4 +1,3 @@
-
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -25,11 +24,8 @@ class PostCreateFormTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        self.authorized_client_author = Client()
-        self.authorized_client_author.force_login(self.user)
 
     def test_create_post(self):
         posts_count = Post.objects.count()
@@ -49,23 +45,18 @@ class PostCreateFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text='test_text',
+                text=PostCreateFormTests.post.text,
                 group=PostCreateFormTests.group.id
-            ).exists()
+            ).latest('id')
         )
 
     def test_post_edit(self):
-        post = Post.objects.create(
-            text='Первоначальный текст поста',
-            group=self.group,
-            author=self.user
-        )
-
+        post = PostCreateFormTests.post
         form_data = {
             'text': 'Был изменен текст',
             'group': post.group.id,
         }
-        response = self.authorized_client_author.post(
+        response = self.authorized_client.post(
             reverse(
                 'posts:post_edit',
                 kwargs={
@@ -78,3 +69,4 @@ class PostCreateFormTests(TestCase):
         post.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.group.id, form_data['group'])

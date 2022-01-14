@@ -1,8 +1,8 @@
-
 from django import forms
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from yatube.settings import PAGINATOR_LIST
 
 from posts.models import Group, Post
 
@@ -24,32 +24,35 @@ class PostPagesTests(TestCase):
             slug='test_slug2',
             description='Описание поста'
         )
-        cls.post = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст',
-            group=cls.group,
+        Post.objects.bulk_create([
+            Post(
+                author=cls.user,
+                text=f'Тестовый текст {num}',
+                group=cls.group
+            )
+            for num in range(1, 21)]
         )
+        cls.post = Post.objects.get(id=1)
 
     def setUp(self):
-        self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        self.authorized_client_author = Client()
-        self.authorized_client_author.force_login(self.user)
 
     def test_index_uses_correct_template(self):
-        response = self.guest_client.get(reverse('posts:index'))
+        response = self.client.get(reverse('posts:index'))
         self.assertTemplateUsed(response, 'posts/index.html')
 
     def test_pages_uses_correct_template(self):
         post_id = PostPagesTests.post.id
+        group_slug = PostPagesTests.group.slug
+        user_test = PostPagesTests.user
         templates_pages_names = {
             'posts/index.html': reverse('posts:index'),
             'posts/group_list.html': (
-                reverse('posts:group_list', kwargs={'slug': 'test_slug'})
+                reverse('posts:group_list', kwargs={'slug': group_slug})
             ),
             'posts/profile.html': (
-                reverse('posts:profile', kwargs={'username': 'auth_user'})
+                reverse('posts:profile', kwargs={'username': user_test})
             ),
             'posts/post_detail.html': (
                 reverse('posts:post_detail', kwargs={'post_id': post_id})
@@ -82,6 +85,71 @@ class PostPagesTests(TestCase):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
+    def test_index_context_paginator(self):
+        response = self.authorized_client.get(reverse('posts:index'))
+        page_obj = response.context.get('page_obj')
+        self.assertEqual(len(page_obj), PAGINATOR_LIST)
+
+    def test_group_posts_context_paginator(self):
+        group_slug = PostPagesTests.group.slug
+        response = self.authorized_client.get(
+            reverse('posts:group_list', kwargs={'slug': group_slug}))
+        self.assertEqual(len(response.context['page_obj']), PAGINATOR_LIST)
+
+    def test_post_not_in_wrong_group(self):
+        response = self.authorized_client.get(
+            reverse('posts:group_list', args=[PostPagesTests.group2.slug])
+        )
+        self.assertNotIn(self.post, response.context.get('page_obj'))
+
+    def test_post_detail_pages_show_correct_context(self):
+        post_id = PostPagesTests.post.id
+        user_test = PostPagesTests.user
+        post_text = PostPagesTests.post.text
+        group_slug = PostPagesTests.group.slug
+        response = (self.authorized_client.get(
+            reverse('posts:post_detail', kwargs={'post_id': post_id})))
+        self.assertEqual(response.context.get('post').author, user_test)
+        self.assertEqual(response.context.get(
+            'post').text, post_text)
+        self.assertEqual(response.context.get('post').group.slug, group_slug)
+
+    def test_post_create_context(self):
+        response = self.authorized_client.get(reverse('posts:create_post'))
+        form_fields = {
+            'text': forms.fields.CharField,
+            'group': forms.fields.ChoiceField,
+        }
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                form_field = response.context['form'].fields[value]
+                self.assertIsInstance(form_field, expected)
+
+    def test_post_edit_context(self):
+        post_id = PostPagesTests.post.id
+        response = self.authorized_client.get(
+            reverse('posts:post_edit', kwargs={'post_id': post_id}))
+        form_fields = {
+            'text': forms.fields.CharField,
+            'group': forms.fields.ChoiceField,
+        }
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                form_field = response.context['form'].fields[value]
+                self.assertIsInstance(form_field, expected)
+
+    def check_page_text_author_slug_context(self, object):
+        obj_fileds = {
+            object.text: self.post.text,
+            object.author.username: self.author.username,
+            object.group.slug: self.group.slug,
+            object.group.description: self.group.description,
+            object.group.title: self.group.title
+        }
+        for field, context in obj_fileds.items():
+            with self.subTest(field=field):
+                self.assertEqual(field, context)
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
@@ -93,83 +161,22 @@ class PaginatorViewsTest(TestCase):
             slug='test_slug_2',
             description='Описание поста'
         )
-        cls.post = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст',
-            group=cls.group,
+        Post.objects.bulk_create([
+            Post(
+                author=cls.user,
+                text=f'Тестовый текст {num}',
+                group=cls.group
+            )
+            for num in range(1, 21)]
         )
-        cls.post2 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст2',
-            group=cls.group,
-        )
-        cls.post3 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст3',
-            group=cls.group,
-        )
-        cls.post4 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст4',
-            group=cls.group,
-        )
-        cls.post5 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст5',
-            group=cls.group,
-        )
-        cls.post6 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст6',
-            group=cls.group,
-        )
-        cls.post6 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст6',
-            group=cls.group,
-        )
-        cls.post7 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст7',
-            group=cls.group,
-        )
-        cls.post8 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст8',
-            group=cls.group,
-        )
-        cls.post9 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст9',
-            group=cls.group,
-        )
-        cls.post10 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст10',
-            group=cls.group,
-        )
-        cls.post11 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст11',
-            group=cls.group,
-        )
-        cls.post12 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый текст12',
-            group=cls.group,
-        )
-
-    def setUp(self):
-        self.guest_client = Client()
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
-        self.authorized_client_author = Client()
-        self.authorized_client_author.force_login(self.user)
+        cls.post = Post.objects.get(id=1)
 
     def test_first_page_contains_ten_records(self):
-        response = self.guest_client.get(reverse('posts:index'))
-        self.assertEqual(len(response.context['page_obj']), 10)
-
+        response = self.client.get(reverse('posts:index'))
+        self.assertEqual(len(response.context['page_obj']), PAGINATOR_LIST)
+ 
     def test_second_page_contains_three_records(self):
-        response = self.guest_client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(len(response.context['page_obj']), 3)
+        posts = Post.objects.all()
+        response = self.client.get(reverse('posts:index') + '?page=2')
+        self.assertEqual(
+            len(response.context['page_obj']), (len(posts) - PAGINATOR_LIST))

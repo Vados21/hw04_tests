@@ -7,19 +7,12 @@ User = get_user_model()
 
 
 class StaticURLTests(TestCase):
-    def setUp(self):
-        self.guest_client = Client()
-
-    def test_homepage(self):
-        response = self.guest_client.get('/')
-        self.assertEqual(response.status_code, 200)
-
     def test_page_author(self):
-        response = self.guest_client.get('/about/author/')
+        response = self.client.get('/about/author/')
         self.assertEqual(response.status_code, 200)
 
     def test_page_tech(self):
-        response = self.guest_client.get('/about/tech/')
+        response = self.client.get('/about/tech/')
         self.assertEqual(response.status_code, 200)
 
 
@@ -40,45 +33,35 @@ class PostURLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        self.authorized_client_author = Client()
-        self.authorized_client_author.force_login(self.user)
 
-    def test_home_url_any_user(self):
-        response = self.guest_client.get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'posts/index.html')
-
-    def test_group_url_any_user(self):
-        response = self.guest_client.get('/group/test_slug/')
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'posts/group_list.html')
-
-    def test_profile_url_any_user(self):
-        response = self.guest_client.get('/profile/user/')
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'posts/profile.html')
-
-    def test_post_url_any_user(self):
-        post_id = PostURLTests.post.id
-        response = self.guest_client.get(f'/posts/{post_id}/')
-        self.assertEqual(response.status_code, 200)
-
-    def test_post_create(self):
-        response = self.authorized_client.get('/create/')
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'posts/create_post.html')
+    def test_urls_uses_correct_template(self):
+        templates_url_names = {
+            'posts/index.html': '/',
+            'posts/group_list.html': f'/group/{PostURLTests.group.slug}/',
+            'posts/profile.html': f'/profile/{PostURLTests.user}/',
+            'posts/post_detail.html': f'/posts/{PostURLTests.post.id}/',
+            'posts/create_post.html': '/create/',
+        }
+        for template, address in templates_url_names.items():
+            with self.subTest(address=address):
+                response = self.authorized_client.get(address)
+                self.assertTemplateUsed(response, template)
+                self.assertEqual(response.status_code, 200)
 
     def test_post_edit(self):
         post_id = PostURLTests.post.id
-        response = self.authorized_client_author.get(f'/posts/{post_id}/edit/')
+        response = self.authorized_client.get(f'/posts/{post_id}/edit/')
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'posts/create_post.html')
 
     def test_create_redirect_if_not_auth(self):
-        response = self.guest_client.get('/create/', follow=True)
+        response = self.client.get('/create/', follow=True)
         self.assertRedirects(
             response, '/auth/login/?next=/create/'
         )
+
+    def test_404_page(self):
+        response = self.client.get('/wrong_url/')
+        self.assertEqual(response.status_code, 404)

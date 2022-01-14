@@ -9,11 +9,11 @@ class Group(models.Model):
     slug = models.SlugField(unique=True, max_length=40)
     description = models.TextField()
 
-    def __str__(self):
-        return self.title
-
     class Meta:
         verbose_name = 'Заголовок группы'
+
+    def __str__(self):
+        return self.title
 
 
 class Post(models.Model):

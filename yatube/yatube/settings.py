@@ -25,7 +25,7 @@ SECRET_KEY = 'vffz0#pct%wm#03zlqv@=td$286+mr^k&h!n857q)0=(*&6*q+'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -95,7 +95,7 @@ DATABASES = {
     }
 }
 
-
+PAGINATOR_LIST = 10
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
 

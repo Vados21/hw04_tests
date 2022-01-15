@@ -32,7 +32,7 @@ def profile(request, username):
     post_list = user.posts.all()
     post_counter = Paginator(post_list, PAGINATOR_LIST).count
     context = {
-        'user': user,
+        'username': user,
         'post_counter': post_counter,
         'page_obj': paginator_func(request, post_list),
     }

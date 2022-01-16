@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-
 from posts.models import Group, Post
 
 User = get_user_model()
@@ -45,8 +44,8 @@ class PostCreateFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text=PostCreateFormTests.post.text,
-                group=PostCreateFormTests.group.id
+                text=form_data['text'],
+                group=form_data['group']
             ).latest('id')
         )
 

@@ -2,10 +2,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import PostForm
-from .models import Group, Post, User
 from yatube.settings import PAGINATOR_LIST
 from yatube.utils import paginator_func
+
+from .forms import PostForm
+from .models import Group, Post, User
 
 
 def index(request):
@@ -28,11 +29,11 @@ def group_posts(request, slug):
 
 
 def profile(request, username):
-    user = get_object_or_404(User, username=username)
-    post_list = user.posts.all()
+    author = get_object_or_404(User, username=username)
+    post_list = author.posts.all()
     post_counter = Paginator(post_list, PAGINATOR_LIST).count
     context = {
-        'username': user,
+        'author': author,
         'post_counter': post_counter,
         'page_obj': paginator_func(request, post_list),
     }

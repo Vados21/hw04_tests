@@ -1,19 +1,19 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-
 from posts.models import Group, Post
 
 User = get_user_model()
 
 
 class StaticURLTests(TestCase):
-    def test_page_author(self):
-        response = self.client.get('/about/author/')
-        self.assertEqual(response.status_code, 200)
-
-    def test_page_tech(self):
-        response = self.client.get('/about/tech/')
-        self.assertEqual(response.status_code, 200)
+    def test_static_pages_status(self):
+        templates_url_names = {
+            '/about/author/': '',
+            '/about/tech/': '',
+        }
+        for address in templates_url_names:
+            response = self.client.get(address)
+            self.assertEqual(response.status_code, 200)
 
 
 class PostURLTests(TestCase):

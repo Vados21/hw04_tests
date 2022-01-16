@@ -2,9 +2,9 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from yatube.settings import PAGINATOR_LIST
-
 from posts.models import Group, Post
+
+from yatube.settings import PAGINATOR_LIST
 
 User = get_user_model()
 
@@ -32,7 +32,7 @@ class PostPagesTests(TestCase):
             )
             for num in range(1, 21)]
         )
-        cls.post = Post.objects.get(id=1)
+        cls.post = Post.objects.all()[0]
 
     def setUp(self):
         self.authorized_client = Client()
@@ -138,16 +138,17 @@ class PostPagesTests(TestCase):
                 form_field = response.context['form'].fields[value]
                 self.assertIsInstance(form_field, expected)
 
-    def check_page_text_author_slug_context(self, object):
-        obj_fileds = {
-            object.text: self.post.text,
-            object.author.username: self.author.username,
-            object.group.slug: self.group.slug,
-            object.group.description: self.group.description,
-            object.group.title: self.group.title
+    def test_page_text_author_slug_context(self):
+        form_data = {
+            PostPagesTests.post.id: self.post.id,
+            PostPagesTests.post.text: self.post.text,
+            PostPagesTests.user: self.user,
+            PostPagesTests.group.slug: self.group.slug,
+            PostPagesTests.group.description: self.group.description,
+            PostPagesTests.group.title: self.group.title
         }
-        for field, context in obj_fileds.items():
-            with self.subTest(field=field):
+        for field, context in form_data.items():
+            with self.subTest(field=field, id=self.id):
                 self.assertEqual(field, context)
 
 
@@ -167,9 +168,9 @@ class PaginatorViewsTest(TestCase):
                 text=f'Тестовый текст {num}',
                 group=cls.group
             )
-            for num in range(1, 21)]
+            for num in range(1, 25)]
         )
-        cls.post = Post.objects.get(id=1)
+        cls.post = Post.objects.all()[0]
 
     def test_first_page_contains_ten_records(self):
         response = self.client.get(reverse('posts:index'))
@@ -179,4 +180,4 @@ class PaginatorViewsTest(TestCase):
         posts = Post.objects.all()
         response = self.client.get(reverse('posts:index') + '?page=2')
         self.assertEqual(
-            len(response.context['page_obj']), (len(posts) - PAGINATOR_LIST))
+            len(response.context['page_obj']), PAGINATOR_LIST % len(posts))

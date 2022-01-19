@@ -2,8 +2,8 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from posts.models import Group, Post
 
+from posts.models import Group, Post
 from yatube.settings import PAGINATOR_LIST
 
 User = get_user_model()
@@ -138,18 +138,19 @@ class PostPagesTests(TestCase):
                 form_field = response.context['form'].fields[value]
                 self.assertIsInstance(form_field, expected)
 
-    def test_page_text_author_slug_context(self):
-        form_data = {
-            PostPagesTests.post.id: self.post.id,
-            PostPagesTests.post.text: self.post.text,
-            PostPagesTests.user: self.user,
-            PostPagesTests.group.slug: self.group.slug,
-            PostPagesTests.group.description: self.group.description,
-            PostPagesTests.group.title: self.group.title
-        }
-        for field, context in form_data.items():
-            with self.subTest(field=field, id=self.id):
-                self.assertEqual(field, context)
+    def test_group_list_context(self):
+        group_slug = PostPagesTests.group.slug
+        group_title = PostPagesTests.group.title
+        group_description = PostPagesTests.group.description
+        response = self.authorized_client.get(
+            reverse('posts:group_list', kwargs={'slug': group_slug}))
+        obj_1 = response.context['group']
+        group_title_test = obj_1.title
+        group_slug_test = obj_1.slug
+        group_description_test = obj_1.description
+        self.assertEqual(group_title_test, group_title)
+        self.assertEqual(group_description_test, group_description)
+        self.assertEqual(group_slug_test, group_slug)
 
 
 class PaginatorViewsTest(TestCase):
@@ -170,7 +171,6 @@ class PaginatorViewsTest(TestCase):
             )
             for num in range(1, 25)]
         )
-        cls.post = Post.objects.all()[0]
 
     def test_first_page_contains_ten_records(self):
         response = self.client.get(reverse('posts:index'))
